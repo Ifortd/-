@@ -3,57 +3,11 @@ import sys
 import pygame
 import random
 
+global cells_len
+fieldSize = 30 # высота\широта игр.поля
+cells_len = fieldSize ** 2 #  длинна массива с клетками и других связаных (генома, мертвых)
 
-def create_first_cell(): # вот через этот костыль создаем первую клетку, шоб не рыгать потом эрорами
-    global dead_current
-    global dead_next
-    dead_current += 1
-    cells[1][0]["type"] = "root"
-
-def create_cells_debug(): # generate cells тоже самое,
-    #блять просто иди нахуй, оно работает и всё, почему
-    global dead_current
-    cells[1][2] = 2
-    change_cell_root_debug(1)
-    change_cell_root_debug(2)
-    cells[2][1] = 1
-    dead_current = 3
-    """эт я токошо создал вручную первые две клетки ибо так бог сказал """
-    simplified_cells_print(cells)
-    print()
-    # принтим клетки ибо шоб ловить уродов
-
-
-    cell_id = add_cell_lnkl(2)
-    change_cell_root_debug(cell_id)
-    cell_id = add_cell_lnkl(2)
-    change_cell_root_debug(cell_id)
-    # тут я черещ уже нормальную функцию создал клетки перед второй клеткой, ибо ну ну ну ну, свзяь плохая, потом перезвонишь
-
-    simplified_cells_print(cells)
-    # принтим клетки ибо шоб ловить уродов
-
-
-
-
-    """print("Создаем клетки прост по преколу \n")
-    create_cell_debug()
-    global first_cell
-    cell_id = first_cell
-    n = 0
-    while(n<4):
-        add_cell_lnkl(cell_id)
-        change_cell_root_debug(cell_id)
-        cell_id = get_dead()
-        n += 1
-
-    first_cell = cell_id
-    print(cells)
-    print()"""
-
-
-
-def add_cell_lnkl(id_of_cell):  # """ добавить клетку перед текущей клеткой """ # УДАРЬ МЕНЯ Я НЕ РАБОТАЮ, та всё тише, уже работаешь
+def add_cell(id_of_cell):  # """ добавить клетку перед текущей клеткой """ # УДАРЬ МЕНЯ Я НЕ РАБОТАЮ, та всё тише, уже работаешь
     ##  у нас всё храниться так [---,[*клетка*,пред клетка индекс, след клетка индекс],---]
     global dead_current
     global dead_next
@@ -63,34 +17,12 @@ def add_cell_lnkl(id_of_cell):  # """ добавить клетку перед �
     cells[prev][2] = new_id
     cells[id_of_cell][1] = new_id  # эт мы поменяли индексы в текущей и пред клетке
     # а теперь надо довавить индексы в новой клетке
-    #cells[new_id][0] = True
+    cells[new_id][0] = True # Я ПОЛТОРА ЧАСА НЕ МОГ ПОНЯТЬ ПОЧЕМУ НИЧЁ НЕ РАБОТАЕТ, ПОКА НЕ НАШЁЛ ЭТУ ПАДЛУ.
     cells[new_id][1] = prev  # добавляем пред клетку в новую клетку
     cells[new_id][2] = id_of_cell  # добавляем текущию клетку как след клетку для новой клетки
-    return new_id # возврат айди созданной клетики
-
-def create_cell_debug():
-    global dead_current
-    global dead_next
-    cell_id = dead_current
-    dead_current += 1
-    cells[cell_id][0]["type"] = "DEBUG"
-    change_cell_root_debug(cell_id)
-
-def randomize_cells_coords(fieldSize):
-    global first_cell
-    current_cell_id = first_cell
-
-    while(current_cell_id != 0):
-        cells[current_cell_id][0]["xy"] = (random.randint(0,fieldSize-1),random.randint(0,fieldSize-1))
-        current_cell_id = next_cell(current_cell_id)
 
 
-
-def change_cell_root_debug(моль):
-    cells[моль][0]["type"] = "root"
-    return "заебись)"
-
-def remove_cell_lnkl(cell_id): # убрать клетку с линкед листа
+def remove_cell(cell_id): # убрать клетку с линкед листа
     global dead_current
     global dead_next
 
@@ -98,6 +30,7 @@ def remove_cell_lnkl(cell_id): # убрать клетку с линкед ли�
     next = cells[cell_id][2]
     cells[prev][2] = next
     add_dead(cell_id)
+
 
 
 def gen_empty_cell(): # creates empty cell// создает пустую клетку
@@ -128,6 +61,10 @@ def generate_cells(cellsLen): # чёт мутное с очередью мерт
         cells[i][0]["type"] = "DEBUG"
         cells[i][1] = i - 1
         cells[i][2] = i + 1
+        cells[i][0]["xy"] = (random.randrange(0, fieldSize * block_size, block_size) + block_size/2,
+                             random.randrange(0, fieldSize * block_size, block_size) + block_size/2) # рандомно заполняем координаты клетки "xy" с шагом в величину
+        print(cells[i][0]["xy"])
+        print("\n")
 
     cells[1][1] = num_of_cells
     cells[num_of_cells][2] = 0
@@ -140,18 +77,18 @@ def generate_cells(cellsLen): # чёт мутное с очередью мерт
 
 
 
-def simplified_cells_print(cells): # debug
-    toPrint = ["XXX",0,0]
+def simplified_cells_print(): # debug
+    toPrint = []
+    cellsBuffer = np.copy(cells)
+    for i in cellsBuffer:
 
-    for i in cells:
+        if i[1] + i[2] > 0:
+            i[0] = "Real"
+        else:
+            i[0] = "XXX"
+        toPrint.append(i)
 
-        #if i[0]["type"] == "root":
-        toPrint[0] = i[0]["type"]
-        toPrint[1] = i[1]
-        toPrint[2] = i[2]
-        print(toPrint)
-
-
+    print("\n", toPrint, "\n len", len(toPrint))
 
 def get_genome(cell): # NO VALIDATION - can be performed on any cell
     return genomes(cell["genome"]) # ааа, ну это точно недоделано
@@ -186,7 +123,6 @@ def kill_cell(cell_ind): # убить клетку
 
 def consume_energy(cell_ind): # потребляем енергию
     cell = cells[cell_ind][0]
-    print(cells[cell_ind])
     cells[cell_ind][0]["energy"] = cell["energy"] - cell["energy consumption"] # кушоем енергию
     if cells[cell_ind][0]["energy"] < 0:
         return 1 # если енергии меньше 0, то посылаем сигнал шоб сдохнуть
@@ -194,7 +130,6 @@ def consume_energy(cell_ind): # потребляем енергию
 
 
 def produce_energy(cell_ind): # производим энергию ок да
-    global яша
     cell = cells[cell_ind][0]
     if cell["type"] == "leaf":
         cells[cell_ind][0]["energy"] += 15 # УДАРЬ МЕНЯ, я имею ввиду 15 потом перенести в переменную leaf_energy_prod
@@ -204,7 +139,6 @@ def produce_energy(cell_ind): # производим энергию ок да
 
 def organics_check(cell): # чек органики на текущей клетке
     xy = cell["xy"]
-    print("корды ", xy)
     if field[xy[0]][xy[1]][1] > 64: # если органики больше 128, то подых # УДАРЬ МЕНЯ, тут 64 потом в переменную перенести
         return 1
     return 0
@@ -291,6 +225,46 @@ def get_dead(): # достать мертвяка из начала очеред
     return cell_id
     # тут возвращаем айди мертвяка
 
+
+
+field = [[[0,0] for j in range(fieldSize)] for i in range(fieldSize)] # создаем матрицу с двух-мерным массивом, в пизду нумпи
+
+# Проверяем
+
+
+cells = [[gen_empty_cell(),0,0] for _ in range(cells_len)]  # linked list, with all of the cells // связный список со всеми клетками
+first_cell = 1
+dead_cells_coords = list(range(cells_len)) ## ааа, ээээ, ну это помоему очередб с пустыми индексами в cells
+
+
+global dead_current
+global dead_next
+dead_current = 0
+dead_next = -1
+dead_next = cells_len - 1
+# это были указатели начала и конца очереди
+
+genomes = [[0 for __ in range(12)] for _ in range(cells_len)] # array with all of the active genomes (len?)
+
+
+##### render
+block_size = 30
+global SCREEN, CLOCK
+
+BLACK = (29, 51, 74)
+WHITE = (255, 255, 255)
+NEW_CELL = (52, 201, 36)
+
+WINDOW_WIDTH = fieldSize * block_size
+WINDOW_HEIGHT = fieldSize * block_size
+pygame.init()
+SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+CLOCK = pygame.time.Clock()
+SCREEN.fill(WHITE)
+arg = block_size, WINDOW_WIDTH, WINDOW_HEIGHT, BLACK
+
+radius = float(block_size/30)
+
 def render(arg): # Рендерит поле, и клетки на нём
     draw_grid(arg)
 
@@ -301,9 +275,8 @@ def render(arg): # Рендерит поле, и клетки на нём
 
     for cell in cells: # Тут идёт проверка на то словарь ли ли в cell[0]
         if isinstance(cell[0], dict): #и если нет, то читаю координаты и рисую
-            if cell[0]["type"] != "none":
+            if cell[0]["xy"] != (0,0):
                 x, y = cell[0]["xy"]
-                print(cell[0]["xy"])
                 pygame.draw.circle(SCREEN, NEW_CELL, (x, y), 13)
         else: #а если да, то ругаюсь. Это сделано потому, что в add_cell последние из cells являются bool-ами
             print(cell)
@@ -324,93 +297,35 @@ def draw_grid(arg):
 
 #### end render
 
-
-global cells_len
-fieldSize = 4 # высота\широта игр.поля
-cells_len = fieldSize ** 2 #  длинна массива с клетками и других связаных (генома, мертвых)
-
-field = [[[0,0] for j in range(fieldSize)] for i in range(fieldSize)] # создаем матрицу с двух-мерным массивом, в пизду нумпи
-
-# Проверяем
-
-
-cells = [[gen_empty_cell(),0,0] for _ in range(cells_len)]  # linked list, with all of the cells // связный список со всеми клетками
-global first_cell
-first_cell = 1
-dead_cells_coords = list(range(cells_len)) ## ааа, ээээ, ну это помоему очередб с пустыми индексами в cells
-
-
-
-global яша
-яша = 42
-global dead_current
-global dead_next
-dead_current = 1
-dead_next = -1
-dead_next = cells_len - 1
-# это были указатели начала и конца очереди
-print(dead_cells_coords)
-print(dead_current)
-print(dead_next)
-#print(cells)
-
-genomes = [[0 for __ in range(12)] for _ in range(cells_len)] # array with all of the active genomes (len?)
-
-
-##### render varibables
-block_size = 30 # размеры квадратиков поля
-global SCREEN, CLOCK
-
-# ну тут цвета
-BLACK = (29, 51, 74)
-WHITE = (255, 255, 255)
-NEW_CELL = (52, 201, 36)
-
-# ну тут хз чёто наврнео очень нужное
-WINDOW_WIDTH = fieldSize * block_size
-WINDOW_HEIGHT = fieldSize * block_size
-pygame.init() # вот это должно быть в сетапе
-SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-CLOCK = pygame.time.Clock() # вот это время в чем то как то ну там спрашивайте ПодСмешка
-SCREEN.fill(WHITE)
-arg = block_size, WINDOW_WIDTH, WINDOW_HEIGHT, BLACK # моль)
-
-radius = float(block_size/30) # радиус кружочка, шоб он как раз в клетку влазил
-
-
 def setup():
-    #generate_cells(cellsLen)  # тута создаеём # хуйня, чёто мутное
-
+    generate_cells(cells_len)  # тута создаеём # хуйня, чёто мутное
+    яша = False;
     #нонаме - перец с костью
-    create_cells_debug()
-    randomize_cells_coords(fieldSize)
+
     #simplified_cells_print()
-    #add_cell_lnkl(3) # ахах ты лох, переделуй) нихуя не працює)))))
+    #add_cell(3) # ахах ты лох, переделуй) нихуя не працює))))) 
     #print(cells)
     #simplified_cells_print()
     # print(genome)
-    pass
+
 
 
 def update():
-    global first_cell
     traverse = True
-    current_cell_id = first_cell # я ебу? фирст целл = 1, хуле? # Да завали, работает же # Сьебал, уже не ебу сколько и где оно менятеся, но всё ещё работает
+    current_cell_id = first_cell
     current_cell = cells[current_cell_id][0]
-    print("current cell id", current_cell_id)
     while(current_cell_id != 0):
+        #upd_cell(current_cell_id)
 
-        upd_cell(current_cell_id)
         current_cell_id = next_cell(current_cell_id)
-        print("current cell id", current_cell_id)
 
 
 def loop():
     n = 0
 
-    while(n<5 or True):
-        #update()
+    while(n<10000000):
         render(arg)
+        update()
         n += 1
 
 setup()
