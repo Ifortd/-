@@ -10,7 +10,7 @@ cells_len = fieldSize ** 2 #  длинна массива с клетками и
 def add_cell(id_of_cell):  # """ добавить клетку перед текущей клеткой """ # УДАРЬ МЕНЯ Я НЕ РАБОТАЮ, та всё тише, уже работаешь
     ##  у нас всё храниться так [---,[*клетка*,пред клетка индекс, след клетка индекс],---]
     global dead_current
-    global dead_next
+    global dead_last
 
     prev = cells[id_of_cell][1]  # это мы находим пред елемент
     new_id = get_dead()
@@ -24,7 +24,7 @@ def add_cell(id_of_cell):  # """ добавить клетку перед тек
 
 def remove_cell(cell_id): # убрать клетку с линкед листа
     global dead_current
-    global dead_next
+    global dead_last
 
     prev = cells[cell_id][1]
     next = cells[cell_id][2]
@@ -54,7 +54,7 @@ def generate_cells(cellsLen): # чёт мутное с очередью мерт
     '''
     #num_of_cells = np.random.randint(int(cellsLen/2)) # колво скок будет живо - рандомно по приколу)))
     global dead_current
-    global dead_next
+    global dead_last
 
     num_of_cells = 5 #колво скок живо сам задаеш
     for i in range(1, num_of_cells+1):
@@ -209,7 +209,7 @@ def next_cell(cell_id): # это для получения след елмент
 
 
 def add_dead(cell_id): # добавить мертвяка в конец очереди # не проверено
-    global dead_next
+    global dead_last
     global cells_len
     dead_next += 1;
     dead_next = dead_next % cells_len
@@ -238,10 +238,10 @@ dead_cells_coords = list(range(cells_len)) ## ааа, ээээ, ну это по
 
 
 global dead_current
-global dead_next
+global dead_last
 dead_current = 0
-dead_next = -1
-dead_next = cells_len - 1
+dead_last = -1
+dead_last = cells_len - 1
 # это были указатели начала и конца очереди
 
 genomes = [[0 for __ in range(12)] for _ in range(cells_len)] # array with all of the active genomes (len?)
