@@ -10,6 +10,51 @@ def create_first_cell(): # УБЕЙСЯ # вот через этот косты�
     dead_current += 1
     cells[1][0]["type"] = "root"
 
+def create_Игорь_debug(): # игорь)
+    global dead_current
+
+    cells[0][2] = 1
+
+    # добавляем в линкед лист
+    cells[1][2] = 2
+
+    cells[2][1] = 1
+    cells[2][2] = 3
+
+    cells[3][1] = 2
+    # меняем типы
+    cells[1][0]["type"] = "stem"
+    cells[2][0]["type"] = "bnch"
+    cells[3][0]["type"] = "leaf"
+    cells[3][0]["energy"] = 200
+
+    # трогаем очередь мертвых
+    dead_current = 4
+
+    # направление
+    cells[1][0]["heading"] = 4
+    cells[2][0]["heading"] = 4
+    cells[3][0]["heading"] = 4
+
+    # линки
+    cells[1][0]["links"] = 8
+    cells[2][0]["links"] = 2 + 8  # 1 2 4 8
+    cells[3][0]["links"] = 8
+
+    # трогем коорлинаты
+    startX = 4
+    startY = 4
+
+    cells[1][0]["xy"] = (startX, startY)
+    field[startX][startY][0] = 1
+    cells[2][0]["xy"] = (startX+1, startY)
+    field[startX+1][startY][0] = 2
+    cells[3][0]["xy"] = (startX+2, startY)
+    field[startX + 2][startY][0] = 3
+
+
+
+
 def create_cells_debug(cells_number):
 # generate cells тоже самое\\
 # только сука женерейт целлс не работает, эта же штука аккуратно обвалакивает cells и dead_cells шоб индексы не сломались, вот прям вкусно и НЕ ТРОГАТЬ
@@ -87,8 +132,8 @@ def randomize_cells_coords(fieldSize): # рандомайзит коорды к�
     print("================================================================")
     print("RANDOMIZING COORDS")
     print()
-    global first_cell
-    current_cell_id = first_cell
+    global first_cell_LEGACY
+    current_cell_id = first_cell_LEGACY
     generated = True
 
     while(current_cell_id != 0):
@@ -138,11 +183,11 @@ def remove_cell_lnkl(cell_id): # убрать клетку с линкед ли�
 def gen_empty_cell(): # creates empty cell// создает пустую клетку // использувется только при спавне поля, дальше не юзать
     cell = {"int type": 0, "type": "none", "heading": 0, "energy": 0, "xy": (-1, -1), "genome": 0, "links": 0, "active gene": 0 , "mutation rate": 0, "energy consumption": 0}
     # type - char[4] - leaf,root, bnch(branch), stem, sead
-    # heading - 1 to 4 (0 = up, 3 = left), 0 = NaN
+    # heading - 1 to 4 (1 = up, 4 = left), 0 = NaN
     # energy - -10 to ??? (255)
     # xy
     # genome coord, 0 = NaN
-    # links 2 - forward, 4 - right, 8 - back, 16 - left
+    # links 1 up , 2 - right, 4 - down, 8 - left, НЕТ НИХУЙЯ, ЛИНКИ АБСОЛЮТНЫ, НЕ ОТНОСИТЕЛЬНЫ
     # active gene - current active gene
     # mutatation rate - 0-1 - chance of mutation
     # energy consumption - потребление енергии за ход
@@ -231,10 +276,11 @@ def consume_energy(cell_ind): # потребляем енергию
 def produce_energy(cell_ind): # производим энергию ок да
     global яша
     cell = cells[cell_ind][0]
-    if cell["type"] == "leaf":
-        cells[cell_ind][0]["energy"] += 15 # УДАРЬ МЕНЯ, я имею ввиду 15 потом перенести в переменную leaf_energy_prod
-    elif cell["type"] == "root":
-        cells[cell_ind][0]["energy"] += яша # ТУТ НАДО ОТДЕЛЬНАЯ ФУННКЕЦИЯ ДЛЯ ВЫКАЧИВАНИЯ ЕНЕРГИИ ИЗ ПОЧВЫ
+    if cell["energy"] < 200:
+        if cell["type"] == "leaf":
+            cells[cell_ind][0]["energy"] += 15 # УДАРЬ МЕНЯ, я имею ввиду 15 потом перенести в переменную leaf_energy_prod
+        elif cell["type"] == "root":
+            cells[cell_ind][0]["energy"] += яша # ТУТ НАДО ОТДЕЛЬНАЯ ФУННКЕЦИЯ ДЛЯ ВЫКАЧИВАНИЯ ЕНЕРГИИ ИЗ ПОЧВЫ
 
 
 def organics_check(cell): # чек органики на текущей клетке
@@ -248,7 +294,8 @@ def upd_cell(cell_ind):  # связная функция, которая тро�
     death = 0 # не умираем
     cell = cells[cell_ind][0]
     death += consume_energy(cell_ind) # потрбляем енергию
-    produce_energy(cell_ind) # производим энерегию (если мы листок иль корешок)
+    move_energy(cell_ind)
+    #produce_energy(cell_ind) # производим энерегию (если мы листок иль корешок)
     death += organics_check(cell)
 
 
@@ -268,7 +315,82 @@ def get_abs_heading(abs_rot, nada_rot): # сделано кирикой, бер�
         res = 4
     return res
 
-def move_energy(arr, now_energy, want_energy=1000, min_energy=0, prioryty=None): # ИСПОЛЬЗОВАТЬ ЧРЕЗ БУФЕРНУЮ ФУНКЦИЮ # ебаный пиздец (сделано киркой), при помощи неких темных манипуляций (не ебу) равномерно распределяет свободную енергию в соседей
+def get_nearby_cells(cell_id): # ХЕЗЕШКА # Получить клетки рядом с выбранной клеткой
+    current_cell = cells[cell_id][0]
+    nearby_cells = [0, 0, 0, 0] # массив с клетками рядом, 0 - вверх, 3 - лево
+    x, y = current_cell["xy"] # ху текущей клетки
+
+    # получаем индексы клетком рядом
+    nearby_cells[0] = field[x][y-1][0]
+    nearby_cells[1] = field[x+1][y][0]
+    nearby_cells[2] = field[x][y + 1][0]
+    nearby_cells[3] = field[x - 1][y][0]
+    return nearby_cells
+
+def get_f_links(cell_id): # переформатировать
+    current_cell = cells[cell_id][0]
+    links = [0,0,0,0]
+    test_bit = 1
+
+    print()
+    for shift in range(4):
+        if (test_bit << shift & current_cell["links"] > 0):
+            links[shift] = 1
+    return links
+
+
+
+def get_linked_cells(cell_id): # УДАРЬ МЕНЯ, плохо написанная функция # шо это вообше такое
+    current_cell = cells[cell_id][0]
+    linked_cells =get_f_links(cell_id)  # мммасссиввв с клетулями, отформатированный линкс (где на индексе 0 - вверх, индекс 3 - лево)
+    x, y = current_cell["xy"]  # ху текущей клетки
+    nearby_cells = get_nearby_cells(cell_id)
+
+
+    for i in range(4):
+        nearby_cells[i] = linked_cells[i] * linked_cells[i]
+
+    #print("nearby cells", nearby_cells)
+    return nearby_cells
+
+
+def move_energy(cell_id): # та самая буферная функция которая пузырит и формамит штуки шоб впихнуть в мув_енерджи_кор
+
+    current_cell = cells[cell_id][0]
+    if current_cell["type"] != "stem" or current_cell["type"] != "none": # чёт там валидация шоб из пустого в порожнее не лить энергию
+        nearby_cells = get_nearby_cells(cell_id) # клетки рядом
+        nearby_cells = get_linked_cells(cell_id)
+        f_nearby_cells = [[0,0] for i in range(4)] # formatted for move energy core (значит двумерный массив по структре [[*тип клетку сверху*,*кол-во енергии в этой клетке*])
+
+        for tmp_cell_id in range(4): # форматим под кор функцию
+            tmp_cell = cells[tmp_cell_id][0]
+            f_nearby_cells[tmp_cell_id] = [True, tmp_cell["energy"]]
+            if tmp_cell_id == 0:
+            #f_nearby_cells[tmp_cell_id] = [ tmp_cell["type"], tmp_cell["energy"] ] # берем кол-во енергии и тип
+                f_nearby_cells[tmp_cell_id][0] = False
+
+
+        rem_energy, o_nearby_cells = move_energy_core(f_nearby_cells, current_cell["energy"] ) # УДАРЬ МЕНЯ, тут пока просто даём всю энергию, а не свободную, шо кабы не очень
+        # rem_energy - remaining energy for current cell
+        # o_nearby_cells - output nearby cells, energy for neaby cells
+        print("rem energy", rem_energy, cells[cell_id][0]["type"],cells[cell_id][0]["energy"])
+
+        cells[cell_id][0]["energy"] = rem_energy
+
+        for tmp_cell_id in range(4): # вставляем енергию в соседнии клетки
+            cells[tmp_cell_id][0]["energy"] = o_nearby_cells[tmp_cell_id][1]
+
+
+    elif current_cell["type"] == "none":
+        print()
+        print("Чёт ты накосячил: попытка передать энергию из пустой клетки (чекай move_energy)")
+        input("Нажми enter что бы продолжить ")
+
+
+
+
+
+def move_energy_core(arr, now_energy, want_energy=1000, min_energy=0, prioryty=None): # ИСПОЛЬЗОВАТЬ ЧРЕЗ БУФЕРНУЮ ФУНКЦИЮ # ебаный пиздец (сделано киркой), при помощи неких темных манипуляций (не ебу) равномерно распределяет свободную енергию в соседей
     """
     крч типо передает енерегию из целевой клекти в соседей и ахуеть
     :param arr: значит двумерный массив по структре [[*тип клетку сверху*,*кол-во енергии в этой клетке*],[*тип клетку справа*,*кол-во енергии в этой клетке*],[...,...],[...,...]]
@@ -282,7 +404,7 @@ def move_energy(arr, now_energy, want_energy=1000, min_energy=0, prioryty=None):
         prioryty = {1: 0, 2: 1, 3: 2, 4: 3}  # ключи єто расположение (1 - вверрх и далье по часовой), а значения ето порядок обхода (по дефолту совпадают)
 
     if min_energy >= now_energy:
-        return now_energy  # если у нас уже енергии меньше чем мы хотим иметь в минимуме, то нихуя не отдаем и все
+        return [now_energy, arr]  # если у нас уже енергии меньше чем мы хотим иметь в минимуме, то нихуя не отдаем и все
 
     averange = now_energy - min_energy # почитаем суму енергии у всех соседей, ну и сразу нас закидіваем
 
@@ -295,14 +417,16 @@ def move_energy(arr, now_energy, want_energy=1000, min_energy=0, prioryty=None):
                 averange += arr[prioryty[i]][1]
                 x += 1
     if x == 0:
-        return now_energy # если какогото хуя никому не можем передать то всьо
+        return [now_energy, arr] # если какогото хуя никому не можем передать то всьо
 
     averange2 = int(averange/x) # вот крч считаем по скок отдаем
 
     for i in range(1, len(arr)+1): # вот отдаем типо
         if arr[prioryty[i]][0] not in [False] and arr[prioryty[i]][1] < now_energy and arr[prioryty[i]][1] < want_energy:
             arr[prioryty[i]][1] = averange2
-    return min_energy + averange - averange2 * x # посчитали скок у нас осталось когда все отдали
+
+    now_energy = min_energy + averange - averange2 * x # посчитали скок у нас осталось когда все отдали
+    return [now_energy, arr]
 
 def next_cell(cell_id): # это для получения след елмента линкед листа с клетками
     return cells[cell_id][2]
@@ -336,6 +460,68 @@ def render_leaf_a(x,y): # made by беззымянникк
     pygame.draw.circle(SCREEN, (0, 175, 0), (x, y), rad)
     pygame.draw.circle(SCREEN, (0, 122, 0), (x, y), rad, 3)
 
+def render_branch_a(x,y,cell_id=0):
+    global block_size
+    # c - center
+    xc = x + int((block_size / 2))
+    yc = y + int((block_size / 2))
+    rad = int(block_size / 2)
+    col = (64, 64, 64)
+    width = 5
+
+    pygame.draw.line(SCREEN, col, (xc, y), (xc, y + block_size), width=width)
+    pygame.draw.line(SCREEN, col, (x, yc), (x + block_size, yc), width=width)
+
+def render_links_debug(x,y,cell_id):
+    global block_size
+    # c - center
+    xc = x + int((block_size / 2))
+    yc = y + int((block_size / 2))
+    rad = int(block_size / 2)
+    col = (255, 35, 35)
+    width = 4
+
+    cell_links = get_f_links(cell_id)
+
+    print("links", cell_links)
+
+    if cell_links[0]:
+        pygame.draw.line(SCREEN, col, (xc, y), (xc, yc), width=width)
+    if cell_links[1]:
+        pygame.draw.line(SCREEN, col, (x+block_size, yc), (xc, yc), width=width)
+    if cell_links[2]:
+        pygame.draw.line(SCREEN, col, (xc, y+block_size), (xc, yc), width=width)
+    if cell_links[3]:
+        pygame.draw.line(SCREEN, col, (x, yc), (xc, yc), width=width)
+
+
+def render_stem_a(x,y): # made by беззымянникк
+
+    global block_size
+    # c - center
+    xc = x+ int((block_size/2))
+    yc = y + int((block_size / 2))
+    rad = int(block_size / 2)
+    col = (64, 64, 64)
+    width = 5
+
+    #pygame.draw.circle(SCREEN, (0, 175, 0), (x, y), rad)
+    pygame.draw.circle(SCREEN, (175, 175, 175), (xc, yc), rad)
+
+    pygame.draw.line(SCREEN, col, (xc,y), (xc,y+block_size), width=width)
+    pygame.draw.line(SCREEN, col, (x, yc), (x+block_size, yc), width=width)
+
+    pygame.draw.circle(SCREEN, col, (xc, yc), rad, width)
+
+def randomize_cols_a_bit(): # установить для каждой ячейки поля чуть чуть отличюшийся цвет
+    global fieldSize
+    diversion = 5
+    for x in range(fieldSize):
+        for y in range(fieldSize):
+            chanLevel = random.randint(240-diversion,255-diversion) # channel level for each R, G and B
+            chanDevLevel = random.randint(-diversion,diversion) #channel deviation level
+            newCol = (chanLevel+chanDevLevel,chanLevel-chanDevLevel,chanLevel)
+            fieldCols[x][y][0] = newCol
 
 def get_axy_from_fxy(fx,fy): # даем колонку и строку, получаем абсолютные коорды левого верхнего края этой клетки
     global block_size
@@ -343,10 +529,15 @@ def get_axy_from_fxy(fx,fy): # даем колонку и строку, полу
     ay = block_size * fy
     return ax, ay
 
+
 def render(arg): # Рендерит поле, и клетки на нём
     block_size, WINDOW_WIDTH, WINDOW_HEIGHT, BLACK = arg
     global render_mode
-    global first_cell # мне надо
+    global debug_mode
+    global first_cell_LEGACY # мне надо
+    global fontDebugSmall
+    global smallFontSize
+    global debug_links
 
     for event in pygame.event.get():  # Выход при нажатии на крестик
         if event.type == pygame.QUIT:
@@ -369,7 +560,8 @@ def render(arg): # Рендерит поле, и клетки на нём
             pass
         case 2:
 
-            current_cell_id = first_cell
+            current_cell_id = first_cell_LEGACY
+            current_cell_id = cells[0][2]
 
             while (current_cell_id != 0):
                 fx, fy = cells[current_cell_id][0]["xy"]
@@ -379,9 +571,35 @@ def render(arg): # Рендерит поле, и клетки на нём
                 #col = (0,255,0)
                 #pygame.draw.rect(SCREEN, col, rect, 0)
 
-                current_cell_id = next_cell(current_cell_id)
+                if cells[current_cell_id][0]["type"] == "stem":
+                    render_stem_a(ax,ay)
+                elif cells[current_cell_id][0]["type"] == "bnch":
+                    render_branch_a(ax,ay)
+                else:
+                    render_leaf_a(ax,ay)
 
-                render_leaf_a(ax,ay)
+
+
+                if debug_mode == 1: # рендер отладочных букававак
+                    nudatipa = smallFontSize - 3
+
+                    current_cell = cells[current_cell_id][0]
+                    line1text = "Type:" + current_cell["type"]
+                    line1 = fontDebugSmall.render(line1text, False, (255,255,255),(0,0,0))
+                    SCREEN.blit(line1, (ax,ay))
+
+                    line2text = "Enrg:" + str(current_cell["energy"])
+                    line2 = fontDebugSmall.render(line2text, False, (255, 255, 255), (0, 0, 0))
+                    SCREEN.blit(line2, (ax, ay+nudatipa*1))
+
+                    line3text = "Ind:" + str(current_cell_id)
+                    line3 = fontDebugSmall.render(line3text, False, (255, 255, 255), (0, 0, 0))
+                    SCREEN.blit(line3, (ax, ay + nudatipa * 2))
+
+                if debug_links == 1:
+                    render_links_debug(ax,ay,current_cell_id)
+
+                current_cell_id = next_cell(current_cell_id)
 
         case 1: #
             block_size, WINDOW_WIDTH, WINDOW_HEIGHT, BLACK = arg
@@ -395,6 +613,9 @@ def render(arg): # Рендерит поле, и клетки на нём
                 else: #а если да, то ругаюсь. Это сделано потому, что в add_cell последние из cells являются bool-ами
                     print(cell)
                     print(f"Invalid data type: {type(cell[0])}")
+
+
+
 
 
     pygame.display.update()
@@ -428,26 +649,19 @@ def draw_grid_безымянник_эдитион(arg): # рисуем поле 
 
             rect = pygame.Rect(ax, ay, block_size, block_size)
 
-            col = fieldCols[fx][fy][0]
+            col = fieldCols[fx][fy][0] # цвет достаем из мега массива который я нашаманиваю где то выше
 
             pygame.draw.rect(SCREEN, col, rect, 0)
 
 
-def randomize_cols_a_bit(): # установить для каждой ячейки поля чуть чуть отличюшийся цвет
-    global fieldSize
-    for x in range(fieldSize):
-        for y in range(fieldSize):
-            chanLevel = random.randint(240,250) # channel level for each R, G and B
-            chanDevLevel = random.randint(-5,5) #channel deviation level
-            newCol = (chanLevel+chanDevLevel,chanLevel-chanDevLevel,chanLevel)
-            fieldCols[x][y][0] = newCol
+
 
 #### end render
 
 
 global cells_len
 global fieldSize
-fieldSize = 16 # высота\широта игр.поля
+fieldSize = 12 # высота\широта игр.поля
 cells_len = fieldSize ** 2 #  длинна массива с клетками и других связаных (генома, мертвых)
 
 field = [[[0,0] for j in range(fieldSize)] for i in range(fieldSize)] # создаем матрицу с двух-мерным массивом, в пизду нумпи
@@ -458,8 +672,9 @@ fieldCols = [[[(255,0,0),(255,255,255)] for j in range(fieldSize)] for i in rang
 
 
 cells = [[gen_empty_cell(),0,0] for _ in range(cells_len)]  # linked list, with all of the cells // связный список со всеми клетками
-global first_cell
-first_cell = 1
+global first_cell_LEGACY
+first_cell_LEGACY = 1 # УБЕЙСЯ, какойто долбоеб (беззымянник) забыл как у нас работает линкед лист и положил это сюда, оно тут не долэно быть
+# для получения индекса первой клетки надо спрашивать cells[0][2] - фантомную клеть.
 dead_cells_coords = list(range(cells_len)) ## ааа, ээээ, ну это помоему очередб с пустыми индексами в cells
 
 
@@ -481,10 +696,15 @@ genomes = [[0 for __ in range(12)] for _ in range(cells_len)] # array with all o
 
 
 ##### render varibables
-block_size = 30 # размеры квадратиков поля
+block_size = 60 # размеры квадратиков поля
 global SCREEN, CLOCK
 global render_mode # режим рендера
 render_mode = 2 # 1 - подсмешок база, 2 - беззымянник # 0 - залагать и умереть)
+global debug_mode
+debug_mode = 1 # 0 - no, 1 - спрашивай беззымянника
+global debug_links
+debug_links = 1
+
 
 # ну тут цвета
 BLACK = (29, 51, 74)
@@ -500,7 +720,12 @@ CLOCK = pygame.time.Clock()  # вот это время в чем то как т
 SCREEN.fill(WHITE)
 arg = block_size, WINDOW_WIDTH, WINDOW_HEIGHT, BLACK  # моль)
 
-radius = float(block_size / 30)  # радиус кружочка, шоб он как раз в клетку влазил
+radius = float(block_size / 30)  # УЛЬТИМАТИВНЫЙ РАДИУС???????? ЧТО ЭТО, ПОЧЕМУ /30
+
+global fontDebugSmall
+global smallFontSize
+smallFontSize = 17 # УБЕЙСЯ, хуйня, я уже заспыпл когда писал, чёт мутное и нерабочее
+fontDebugSmall = pygame.font.Font(None, smallFontSize)  # малый шрифт для дебага на клетках
 
 
 """
@@ -517,8 +742,10 @@ def setup():
     randomize_cols_a_bit()
 
     #нонаме - перец с костью
-    create_cells_debug(6) # УДАРЬ МЕНЯ \\ шутка генерит клетки, работает и ладно, слава целостности cells
-    randomize_cells_coords(fieldSize) # рандомазит коорды стартовых клеток, максмимальная залупа, использовать только и тут и сейчас, оно тупое и еле дышит
+    create_Игорь_debug()
+    #create_cells_debug(3) # шутка генерит клетки, работает и ладно, слава целостности cells
+    #randomize_cells_coords(fieldSize) # рандомазит коорды стартовых клеток, максмимальная залупа, использовать только и тут и сейчас, оно тупое и еле дышит
+
     #simplified_cells_print()
     #add_cell_lnkl(3) # ахах ты лох, переделуй) нихуя не працює)))))
     #print(cells)
@@ -528,9 +755,11 @@ def setup():
 
 
 def update():
-    global first_cell
+    input("press enter")
+    global first_cell_LEGACY
     traverse = True
-    current_cell_id = first_cell # я ебу? фирст целл = 1, хуле? # Да завали, работает же # Сьебал, уже не ебу сколько и где оно менятеся, но всё ещё работает
+    current_cell_id = first_cell_LEGACY #first_cell_LEGACY # я ебу? фирст целл = 1, хуле? # Да завали, работает же # Сьебал, уже не ебу сколько и где оно менятеся, но всё ещё работает
+    current_cell_id = cells[0][2]
     current_cell = cells[current_cell_id][0]
     print("current cell id", current_cell_id)
     while(current_cell_id != 0):
@@ -542,10 +771,10 @@ def update():
 
 def loop():
     n = 0
-
     while(n<5 or True):
-        #update()
         render(arg)
+        update()
+
         n += 1
 
 setup()
@@ -554,3 +783,4 @@ loop()
 
 
 # credits: ТриГнома (ПодСмешок, Беззыммянникк, Кирка) )
+# идея: foo52ru техношаман
