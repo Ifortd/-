@@ -12,9 +12,10 @@ def create_first_cell(): # УБЕЙСЯ # вот через этот косты�
     cells[1][0]["type"] = "root"
 
 def grow_cell(parent_cell_id, heading, new_type, new_energy=0): # Вот это штука которая выращиевт новые клетки # ХЕЗЕШКА
+    global fieldSize
     child_x = cells[parent_cell_id][0]["xy"][0]
     child_y = cells[parent_cell_id][0]["xy"][1]
-    # не забудь валидицаю по филду, ПОЖАЛУЙСТА УДАРЬ МЕНЯ
+    # НЕ ЗАБУДЬ ПРО КРАЯ ПОЛЯ УБЕЙСЯ
     # heading - 1 up, ... , 4 - left
     if heading == 2:
         child_x += 1
@@ -27,6 +28,10 @@ def grow_cell(parent_cell_id, heading, new_type, new_energy=0): # Вот это 
     else:
         child_y = 0
         child_x = 0
+
+    if (child_x < 0 or child_x > fieldSize) or (child_y < 0 or child_y > fieldSize):
+        print("при создании новой клетки вышли за границы")
+        return False
 
     if field[child_x][child_y][0] == 0:
 
